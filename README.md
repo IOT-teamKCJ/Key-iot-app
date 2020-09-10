@@ -3,17 +3,15 @@
 ## The idea
 ### General description
 Use your phone, instead of a doorlock key, through IoT devices's, custom phone app, and API's.
-<br/>
 
 ### Indepth explanation
 (first draft):
-<br/>
+
 
 
 
 ### Rich picture
-insert image link
-<br/>
+https://webassets.inman.com/wp-content/uploads/2019/10/Untitled-design-2019-10-29T153346.079.jpg
 
 
 ### Youtube video
