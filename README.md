@@ -2,7 +2,7 @@
 
 ## The idea
 ### General description
-Use your phone, instead of a doorlock key, through IoT devices's, custom phone app, and API's.
+Use your phone, instead of a doorlock key, through IoT devices's, custom phone app, and API's/webhooks.
 
 ### Indepth explanation
 (first draft):
