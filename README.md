@@ -1,4 +1,4 @@
-# lock_app
+# lock_app (open in raw mode!)
 
 A Particle project named lock_app.
 The idea is to have an app on you and your friends phone, which can open the lock on your and theirs door.
