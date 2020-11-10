@@ -1,4 +1,4 @@
-c:/Users/janka/Documents/ParticleProjects/lock_app/target/2.0.0-rc.4/argon//obj/./src/module_info.o: \
+d:/Git-repos/Key-iot-app/target/2.0.0-rc.4/argon//obj/./src/module_info.o: \
  src/module_info.c ../../../dynalib/inc/module_info.inc \
  ../../../dynalib/inc/module_info.h ../../../services/inc/static_assert.h \
  c:\users\janka\.particle\toolchains\gcc-arm\9.2.1\arm-none-eabi\include\assert.h \

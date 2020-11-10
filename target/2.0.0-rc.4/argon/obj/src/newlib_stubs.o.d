@@ -1,4 +1,4 @@
-c:/Users/janka/Documents/ParticleProjects/lock_app/target/2.0.0-rc.4/argon//obj/./src/newlib_stubs.o: \
+d:/Git-repos/Key-iot-app/target/2.0.0-rc.4/argon//obj/./src/newlib_stubs.o: \
  src/newlib_stubs.cpp \
  ../../../modules/shared/nRF52840/inc/user-part/newlib_stubs.inc \
  c:\users\janka\.particle\toolchains\gcc-arm\9.2.1\arm-none-eabi\include\sys\types.h \

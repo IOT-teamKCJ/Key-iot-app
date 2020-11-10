@@ -18,12 +18,12 @@ all these request's and response's work through curl commands to the argon devic
              |   Argon   |                 | webhook |                    | Thingspeak API |                  | Guest app |                     | Master app |
              +----+------+                 +---+-----+                    +-------+--------+                  +-----+-----+                     +------+-----+
                   |                            |                                  |                                 |                                  |
-                  |                            | unlock door curl request (guest) |                                 |                                  |
-                  +<------------------------------------------------------------------------------------------------+                                  |
-                  |    Create request e^ent    |                                  |                                 |                                  |
-                  +--------------------------->+                                  |                                 |                                  |
-                  |                            |        Send to thingspeak        |                                 |                                  |
-                  |                            +--------------------------------->+                                 |                                  |
+                  |                            |                                  | unlock door curl request (guest)|                                  |
+                  |                            |                                  +<--------------------------------+                                  |
+                  |                            |                                  |                                 |                                  |
+                  |                            |                                  |                                 |                                  |
+                  |                            |                                  |                                 |                                  |
+                  |                            |                                  |                                 |                                  |
                   |                            |                                  |   Send to master app (owner)    |                                  |
                   |                            |                                  +------------------------------------------------------------------->+
 +-------------+   |                            |                                  |                                 |  Curl command <accept|decline>   |
@@ -43,16 +43,17 @@ all these request's and response's work through curl commands to the argon devic
                |    *create door sensor var. (input)    |  +---------------------+  |   through curl command                |
                |                                        |  +---------------------+  |                                       |
                |   Master curl command                  |  |   Thingspeak API    |  | Master functions                      |
-               |    *open door                          |  |                     |  |  *accept|decline request's            |
+               |    *open door                          |  |                     |  |  *accept+decline request's            |
                |    *door status sensor check           |  |log "lock_hook"      |  |  *open own door                       |
                |    *lock door                          |  |event's              |  |                                       |
                |                                        |  |                     |  +---------------------------------------+
-               |   Request curl command                 |  |generate URL for     |
-               |    *create request event               |  |data                 |
+               |                                        |  |generate URL for     |
+               |                                        |  |data                 |
                |                                        |  +---------------------+
                +----------------------------------------+
 
 +------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
 
 
 

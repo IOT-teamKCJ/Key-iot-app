@@ -3,7 +3,7 @@
 /******************************************************/
 
 #include "Particle.h"
-#line 1 "c:/Users/janka/Documents/ParticleProjects/lock_app/src/lock_app.ino"
+#line 1 "d:/Git-repos/Key-iot-app/src/lock_app.ino"
 /*
  * Project lock_app
  * Description:
@@ -14,14 +14,20 @@
 void setup();
 void loop();
 int actuator_test(String command);
-int actuator_command(const char *data);
-int unlock_request(const char *data);
-#line 8 "c:/Users/janka/Documents/ParticleProjects/lock_app/src/lock_app.ino"
+int servoAngle(String command);
+int master_command(const char *data);
+#line 8 "d:/Git-repos/Key-iot-app/src/lock_app.ino"
 # include "Particle.h"
 
-// actuator for opening the door
-int actuator = D6;
-int actuator_val;
+// diodes for showing door status
+int green_diode = D6;
+int red_diode = D5;
+int green_diode_val;
+int red_diode_val;
+
+// servo pin D2
+Servo myservo; 
+int pos = 0;
 
 // sensor for sensing door closing
 // has to be an ADC channel!!
@@ -30,24 +36,29 @@ int sensor_val;
 
 // setup() runs once, when the device is first turned on.
 void setup() {
-  // Set up actuator pin
-  pinMode(actuator, OUTPUT);
-  digitalWrite(actuator, LOW);
+  // Set up diode pin's
+  pinMode(green_diode, OUTPUT);
+  digitalWrite(green_diode, LOW);
+  pinMode(red_diode, OUTPUT);
+  digitalWrite(red_diode, LOW);
 
   // Set up sensor pin
   pinMode(sensor, INPUT_PULLUP);
 
   // For manual actuator testing
-  Particle.variable("Actuator value", &actuator_val, INT);
+  Particle.variable("Actuator value", &green_diode_val, INT);
   Particle.variable("Sensor value", &sensor_val, INT);
   Particle.function("Actuator test", actuator_test);
-  Particle.function("Actuator", actuator_command);
-  Particle.function("Request", unlock_request);
+  Particle.function("Master", master_command);
+
+  // set up servo
+  Particle.function("servo",servoAngle);
+  myservo.attach(D2);  // attaches the servo on the D0 pin to the servo object
 }
 
 
 void loop() {
-  actuator_val = analogRead(actuator);
+  green_diode_val = analogRead(green_diode);
   sensor_val = analogRead(sensor);
 }
 
@@ -56,13 +67,13 @@ int actuator_test(String command)
 {
   if (command == "on")
   {
-    digitalWrite(actuator, HIGH);
+    digitalWrite(green_diode, HIGH);
     Particle.publish("Actuator activated", PRIVATE);
     return 1;
   }
   else if (command == "off")
   {
-    digitalWrite(actuator, LOW);
+    digitalWrite(green_diode, LOW);
     Particle.publish("Actuator deactivated", PRIVATE);
     return 0;
   }
@@ -73,19 +84,50 @@ int actuator_test(String command)
   } 
 }
 
+/* 
+servo control function
+
+commands:
+"toggle" = ?
+"lock" = locks the door
+"unlock" = unlocks the door
+*/
+int servoAngle(String command) {
+
+    if(command == "toggle") {
+        myservo.write(180);
+        delay(3000);
+        myservo.write(0);
+    } 
+
+    else if(command == "lock") {
+        myservo.write(0);
+    }
+    else if(command == "unlock") {
+        myservo.write(180);
+    } 
+    else {
+       myservo.write(command.toInt()); 
+    }
+
+
+    return 0;
+
+}
+
 // jan: 
 //      device id: e00fce6864ea86ea7bb98251
 //      token: 6c8b51fd99f54209516d578e06384b56cc0a9113
 //
 // Actuator call function from https:
 // Curl string (without -, spaces and in one string):
-//    curl https://api.particle.io/v1/devices/<DEVICE-ID>/Actuator? -
+//    curl https://api.particle.io/v1/devices/<DEVICE-ID>/Master? -
 //    access_token=<ACCESS-TOKEN> -d "arg={access:<deny or allow>}"
 //
 //    replace string in <>
 //    in windows prompt, it might be neccessary to write curl.exe instead of
 //    curl
-int actuator_command(const char *data)
+int master_command(const char *data)
 {
   //insert JSON string into JSON object, and itterate through object
   JSONValue master_msg = JSONValue::parseCopy(data);
@@ -105,14 +147,16 @@ int actuator_command(const char *data)
         Particle.publish("Lock_hook", "master allow", PRIVATE);
         // open door
         Particle.publish("door is open", PRIVATE);
-        digitalWrite(actuator, HIGH);
+        digitalWrite(green_diode, HIGH);
+        servoAngle("unlock");
 
         // door gets closed sensing
         delay(10000); //given time to open the door
         sensor_val = analogRead(sensor);
         if (sensor_val >= 50) // door is closed
         {
-          digitalWrite(actuator, LOW);
+          digitalWrite(green_diode, LOW);
+          servoAngle("lock");
           Particle.publish("door is closed", PRIVATE);
           return 1;
         }
@@ -122,7 +166,8 @@ int actuator_command(const char *data)
           {
             sensor_val = analogRead(sensor);
           }
-          digitalWrite(actuator, LOW);
+          digitalWrite(green_diode, LOW);
+          servoAngle("lock");
           Particle.publish("door is closed", PRIVATE);
           return 1;
         }
@@ -133,7 +178,11 @@ int actuator_command(const char *data)
         // publish to thingspeak, so guest can recieve deny msg.
         Particle.publish("Lock_hook", "master deny", PRIVATE);
         // be sure door is locked, just for good measure
-        digitalWrite(actuator, LOW);
+        
+        servoAngle("lock");
+        digitalWrite(red_diode, HIGH);
+        delay(3000);
+        digitalWrite(red_diode, LOW);
         return 0;
       }
       else
@@ -149,42 +198,8 @@ int actuator_command(const char *data)
   return -2;
 }
 
-// jan: 
-//      device id: e00fce6864ea86ea7bb98251
-//      token: 6c8b51fd99f54209516d578e06384b56cc0a9113
-//
-// Access request call function from https:
-// Curl string (without -, spaces and in one string):
-//    curl https://api.particle.io/v1/devices/<DEVICE-ID>/Request? -
-//    access_token=<ACCESS-TOKEN> -d "arg={access:request}"
-//
-//    in windows prompt, it might be neccessary to write curl.exe instead of
-//    curl
-int unlock_request(const char *data)
-{
-  //insert JSON string into JSON object, and itterate through object
-  JSONValue guest_msg = JSONValue::parseCopy(data);
-  JSONObjectIterator iter(guest_msg);
-
-  while(iter.next())
-  {
-    // make it possible to read JSON string
-    String val = iter.value().toString().data();
-
-    // go through JSON string
-    if (iter.name() == "access")
-    {
-      if (val == "request")
-      {
-      Particle.publish("lock_hook", "guest request access", PRIVATE);
-      return 1;
-      }
-      else
-      {
-        Particle.publish("guest request error", val, PRIVATE);
-        return -1;
-      }
-    }
-  }
-  return -2;
-}
+/*
+Unlock request has been removed, so it will run through thingspeak's api instead.
+The thingspeak command will be:
+https://api.thingspeak.com/update?api_key=<write API key>&field1=0
+*/

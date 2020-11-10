@@ -1,4 +1,4 @@
-c:/Users/janka/Documents/ParticleProjects/lock_app/target/2.0.0-rc.4/argon//obj/./src/user_export.o: \
+d:/Git-repos/Key-iot-app/target/2.0.0-rc.4/argon//obj/./src/user_export.o: \
  src/user_export.c \
  ../../../modules/shared/nRF52840/inc/user_part_export.c \
  ../../../modules/shared/nRF52840/inc/module_user_init.h \
