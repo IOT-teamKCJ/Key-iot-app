@@ -13,82 +13,64 @@
 
 void setup();
 void loop();
-int actuator_test(String command);
 int servoAngle(String command);
 int master_command(const char *data);
+int readSensor(String command);
 #line 8 "d:/Git-repos/Key-iot-app/src/lock_app.ino"
 # include "Particle.h"
 
-// diodes for showing door status
-int green_diode = D6;
-int red_diode = D5;
-int green_diode_val;
-int red_diode_val;
+// create servo object to control a servo
+// a maximum of eight servo objects can be created
+Servo myservo;
 
-// servo pin D2
-Servo myservo; 
+// variable to store the servo position
 int pos = 0;
+
+// variable for actuator power 
+int power = A5;
 
 // sensor for sensing door closing
 // has to be an ADC channel!!
-int sensor = A0;
-int sensor_val;
+int analogvalue;
+int photoresistor = A0;
+int lightSensorLED = D3;
+
+// diodes for showing door status
+int greenLED = D4;
+int redLED = D6;
+
+// pre declaration
+bool doorIsOpen();
 
 // setup() runs once, when the device is first turned on.
 void setup() {
-  // Set up diode pin's
-  pinMode(green_diode, OUTPUT);
-  digitalWrite(green_diode, LOW);
-  pinMode(red_diode, OUTPUT);
-  digitalWrite(red_diode, LOW);
+    //setup cloud API
+    Particle.function("master_command",master_command);
+    Particle.function("sensor",readSensor);
+    Particle.variable("analogvalue", &analogvalue, INT);
+    
+    // setup actuator
+    myservo.attach(D2); 
 
-  // Set up sensor pin
-  pinMode(sensor, INPUT_PULLUP);
-
-  // For manual actuator testing
-  Particle.variable("Actuator value", &green_diode_val, INT);
-  Particle.variable("Sensor value", &sensor_val, INT);
-  Particle.function("Actuator test", actuator_test);
-  Particle.function("Master", master_command);
-
-  // set up servo
-  Particle.function("servo",servoAngle);
-  myservo.attach(D2);  // attaches the servo on the D0 pin to the servo object
+    // setup pins
+    pinMode(photoresistor, INPUT);
+    pinMode(power, OUTPUT);
+    pinMode(lightSensorLED, OUTPUT);
+    pinMode(greenLED, OUTPUT);
+    pinMode(redLED, OUTPUT);
 }
 
 
-void loop() {
-  green_diode_val = analogRead(green_diode);
-  sensor_val = analogRead(sensor);
-}
-
-// Actuator manual testing function
-int actuator_test(String command)
+void loop() 
 {
-  if (command == "on")
-  {
-    digitalWrite(green_diode, HIGH);
-    Particle.publish("Actuator activated", PRIVATE);
-    return 1;
-  }
-  else if (command == "off")
-  {
-    digitalWrite(green_diode, LOW);
-    Particle.publish("Actuator deactivated", PRIVATE);
-    return 0;
-  }
-  else
-  {
-    Particle.publish("Failure in command", PRIVATE);
-    return -1;
-  } 
+
 }
 
 /* 
 servo control function
 
 commands:
-"toggle" = ?
+"toggle" = test's the actuator
 "lock" = locks the door
 "unlock" = unlocks the door
 */
@@ -135,67 +117,90 @@ int master_command(const char *data)
 
   while(iter.next())
   {
+    //val for loop
+    int i = 0;
+
     // make it possible to read JSON string
-    String val = iter.value().toString().data();
+    String command = iter.value().toString().data();
 
     // go through JSON string
     if (iter.name() == "access")
     {
-      if (val == "allow")
-      {
-        // publish to thingspeak, so guest can recieve ack msg.
-        Particle.publish("Lock_hook", "master allow", PRIVATE);
-        // open door
-        Particle.publish("door is open", PRIVATE);
-        digitalWrite(green_diode, HIGH);
-        servoAngle("unlock");
-
-        // door gets closed sensing
-        delay(10000); //given time to open the door
-        sensor_val = analogRead(sensor);
-        if (sensor_val >= 50) // door is closed
-        {
-          digitalWrite(green_diode, LOW);
-          servoAngle("lock");
-          Particle.publish("door is closed", PRIVATE);
-          return 1;
-        }
-        else
-        {
-          while(sensor_val <= 50) // door is open
-          {
-            sensor_val = analogRead(sensor);
+      if(command == "Accept") {
+          // open door
+          digitalWrite(power,HIGH);
+          digitalWrite(lightSensorLED, HIGH);
+          delay(200);
+          if(!doorIsOpen()) {
+            Particle.publish("lock_hook", "1", PRIVATE);
+            Particle.publish("door is open", PRIVATE);
+            digitalWrite(greenLED, HIGH);
+            myservo.write(180);
+            delay(10000);
+            while(doorIsOpen())
+                delay(10);
+            myservo.write(0);
+            Particle.publish("door is closed", PRIVATE);
+            digitalWrite(greenLED, LOW); 
+            digitalWrite(lightSensorLED, LOW);
+            digitalWrite(power,LOW);
+            return 0;
           }
-          digitalWrite(green_diode, LOW);
-          servoAngle("lock");
-          Particle.publish("door is closed", PRIVATE);
+          else {
+            Particle.publish("door is already open", PRIVATE);
+            Particle.publish("lock_hook", "-2", PRIVATE);
+            for(i=0;i<=4;i++)
+            {
+              digitalWrite(greenLED, HIGH);
+              delay(500);
+              digitalWrite(greenLED, LOW);
+              digitalWrite(redLED, HIGH);
+              delay(500);
+              digitalWrite(redLED, LOW);
+            }
+            digitalWrite(lightSensorLED, LOW);
+            digitalWrite(power,LOW);
+            return -2;
+          }
           return 1;
-        }
-        
-      }
-      else if (val == "deny")
-      {
-        // publish to thingspeak, so guest can recieve deny msg.
-        Particle.publish("Lock_hook", "master deny", PRIVATE);
-        // be sure door is locked, just for good measure
-        
-        servoAngle("lock");
-        digitalWrite(red_diode, HIGH);
-        delay(3000);
-        digitalWrite(red_diode, LOW);
-        return 0;
+      } 
+      else if(command == "Deny") {
+          Particle.publish("lock_hook", "2", PRIVATE);
+          digitalWrite(redLED, HIGH);
+          delay(2000);
+          digitalWrite(redLED, LOW);
+          return 2;
       }
       else
       {
-        // publish to thingspeak, so guest can recieve error msg.
-        Particle.publish("Lock_hook", "master command error:", PRIVATE);
+        // indicate on nthingspeak, an error has been recieved
+        Particle.publish("lock_hook", "-1", PRIVATE);
         // publish to particle event log, so owner can see error msg.  
-        Particle.publish("master command error", val, PRIVATE);
+        Particle.publish("master command error", command, PRIVATE);
         return -1;
       }
     }
   }
   return -2;
+}
+
+// function for reading door status
+bool doorIsOpen() {
+    if(analogRead(photoresistor)>100)
+        return true;
+    else
+        return false;
+}
+
+// function for reading sensor value
+int readSensor(String command){
+    digitalWrite(power,HIGH);
+    digitalWrite(lightSensorLED, HIGH);
+    delay(200);
+    analogvalue = analogRead(photoresistor);
+    digitalWrite(power,LOW);
+    digitalWrite(lightSensorLED, LOW);
+    return analogvalue;
 }
 
 /*
