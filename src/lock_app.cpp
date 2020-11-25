@@ -193,6 +193,7 @@ bool doorIsOpen() {
 }
 
 // function for reading sensor value
+// cloud API function
 int readSensor(String command){
     digitalWrite(power,HIGH);
     digitalWrite(lightSensorLED, HIGH);
