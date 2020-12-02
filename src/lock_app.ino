@@ -58,8 +58,11 @@ int app_request(const char *data)
   // write sensor code
   // if some1 is there do this:
   // thingspeak endpoint: https://api.thingspeak.com/update?api_key=WM3BOJJVRC49R6UU&field1=1
-  if(digitalRead(pir))
-    Particle.publish("app_request", "1", PRIVATE);
+    if(digitalRead(pir))
+        Particle.publish("app_request", "1", PRIVATE);
+    else
+        Particle.publish("app_request_denied", "1", PRIVATE);
+
 
   // if noone do this:
 
