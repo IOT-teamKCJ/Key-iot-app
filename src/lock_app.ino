@@ -20,8 +20,10 @@ int power = A5;
 // sensor for sensing door closing
 // has to be an ADC channel!!
 int analogvalue;
+int pirvalue;
 int photoresistor = A0;
 int lightSensorLED = D3;
+int pir = D8;
 
 // diodes for showing door status
 int greenLED = D4;
@@ -37,6 +39,7 @@ void setup() {
     Particle.function("app_request",app_request);
     Particle.function("sensor",readSensor);
     Particle.variable("analogvalue", &analogvalue, INT);
+    Particle.variable("pirvalue", &pirvalue, INT);
 
     // setup actuator
     myservo.attach(D2); 
@@ -47,6 +50,7 @@ void setup() {
     pinMode(lightSensorLED, OUTPUT);
     pinMode(greenLED, OUTPUT);
     pinMode(redLED, OUTPUT);
+    pinMode(pir, INPUT);
 }
 
 int app_request(const char *data)
@@ -54,7 +58,8 @@ int app_request(const char *data)
   // write sensor code
   // if some1 is there do this:
   // thingspeak endpoint: https://api.thingspeak.com/update?api_key=WM3BOJJVRC49R6UU&field1=1
-  Particle.publish("app_request", "1", PRIVATE);
+  if(digitalRead(pir))
+    Particle.publish("app_request", "1", PRIVATE);
 
   // if noone do this:
 
