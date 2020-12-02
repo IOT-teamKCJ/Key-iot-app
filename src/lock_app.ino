@@ -34,9 +34,10 @@ bool doorIsOpen();
 void setup() {
     //setup cloud API
     Particle.function("master_command",master_command);
+    Particle.function("app_request",app_request);
     Particle.function("sensor",readSensor);
     Particle.variable("analogvalue", &analogvalue, INT);
-    
+
     // setup actuator
     myservo.attach(D2); 
 
@@ -48,6 +49,17 @@ void setup() {
     pinMode(redLED, OUTPUT);
 }
 
+int app_request(const char *data)
+{
+  // write sensor code
+  // if some1 is there do this:
+  // thingspeak endpoint: https://api.thingspeak.com/update?api_key=WM3BOJJVRC49R6UU&field1=1
+  Particle.publish("app_request", "1", PRIVATE);
+
+  // if noone do this:
+
+  return 0;
+}
 
 void loop() 
 {
